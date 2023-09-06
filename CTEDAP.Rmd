@@ -1,0 +1,569 @@
+---
+title: "CTED Achievement Profile"
+author: "Samuel Irvin"
+date: '2023-08-30'
+output: 
+  html_document:
+    css: style.css
+    theme: 
+      version: 4
+params:
+  cted: "Cochise Technology District"
+  year: "FY 2022 - 2023"
+  grad_cohort_year: 2022
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(kableExtra)
+library(tidyverse)
+library(shiny)
+```
+```{r importsource, include=FALSE, cache=TRUE}
+source("Helper-2023.R", local = knitr::knit_global())
+source("Placement.R", local = knitr::knit_global())
+source("Graduation Rate.R", local = knitr::knit_global())
+source("Program Completion.R", local = knitr::knit_global())
+
+
+```
+
+
+<html>
+<head>
+
+<script src="https://kit.fontawesome.com/b19d8193b5.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header>
+<img src = "./images/ADE-logo.png" class = "logo">
+<h1 style="color:white;">`r toupper(params$cted)`</h1>
+</header>
+
+<div class = "sectiontitle">
+<h3>`r paste(params$year, " CTED Achievement Profile")`</h2>
+</div>
+
+<table class = "styled-table">
+<thead>
+<tr>
+<th>Statutorily Required Criteria</th>
+<th>Additional Criteria</th>
+</tr>
+</thead>
+<tr>
+<td>Graduation rate of all students enrolled in a CTE program.</td>
+<td>Graduation rate disaggreated by population, for both CTE participants and concentrators, and disaggregated by campus type, additional comparison metrics.</td>
+</tr>
+<tr>
+<td>The completion rate for each program offered by the CTED.</td>
+<td>The program completion rate disaggregated by program and campus type, additional comparison metrics.</td>
+</tr>
+<tr>
+<td>Performance on technical skills assessments.</td>
+<td>TSA attempt and pass rates, disaggregated by program and campus type, additional comparison metrics.</td>
+</tr>
+<tr>
+<td>Postgraduation employment rates, postsecondary enrollment rates, and military service rates for program completers.</td>
+<td>Postgraduation advanced training rates, participation in a national service program rate, and placement rates disaggregated by campus type,
+additional comparison metrics.</td>
+</tr>
+<tr>
+<td></td>
+<td>Performance on industry-recognized credential assessments, including attempt and pass rates, disaggregated by program and campus type, additional comparison metrics.</td>
+</tr>
+</table>
+
+
+# DEFINITIONS
+
+<dl>
+<dt>CTE Participant</dt>
+<dd>A CTE participant is any student that completes and passes at least one CTE course worth at least one credit in a CTE program.</dd>
+<dt>CTE Concentrator</dt>
+<dd>A CTE concentrator is a student that completes and passes at least different two courses worth at least one credit each in a single CTE program. Internships and cooperative education are not included in determining concentrator status.</dd>
+<dt>Program Completer</dt>
+<dd>A program completer is a student that passes all the required courses in a single CTE program having earned a minimum of one credit in each required course. Internships and cooperative education courses are not included in determining program completion status.</dd>
+<dt>Technical Skills Assessment</dt>
+<dd>The Technical Skills Assessment (TSA) is a comprehensive end-of-program assessment designed to certify a student’s understanding and mastery of industry-validated knowledge and skill. TSA assessments are not credential assessments.</dd>
+<dt>Industry-recognized Credentials</dt>
+<dd>Credentials are third-party issued and industry-recognized and widely accepted certificates, licenses, and other credentials that signify a student’s mastery of industry-validated knowledge and skill. These credentials are not issued by ADE.</dd>
+</dl>
+
+```{r ctedcampus, include=FALSE}
+cted_campus <- cteddistrictlist %>% 
+  filter(CTEDName == params$cted & CTEDLocation == TRUE) %>% 
+  select(DistrictName, SchoolName) %>%
+  rename("District" = DistrictName,
+         "Campus" = SchoolName)
+
+district_school <- cteddistrictlist %>%
+  filter(CTEDName == params$cted & CTEDLocation == FALSE) %>%
+  select(DistrictName, SchoolName) %>%
+  rename("District" = DistrictName,
+         "School" = SchoolName)
+```
+<div class = "pagebreak"></div>
+
+# CTED CAMPUSES
+### CTED Central Campuses
+
+<div>
+<p class = "columntext">
+```{r ctedcampustbl, include=TRUE}
+cted_campus[,2] %>% 
+  kbl(col.names = NULL) %>%
+  kable_styling()
+```
+</p>
+</div>
+
+
+### Member Districts & Satellite Campuses
+
+
+<div>
+<p class = "columntext">
+```{r districtschooltbl, include=TRUE}
+district_school[,2] %>% 
+  kbl(col.names = NULL) %>%
+  kable_styling() %>%
+  pack_rows(index = table(district_school$District))
+```
+</p>
+</div>
+
+<div>
+<p>All data in this profile is disaggregated by campus type and is displayed as “CTED Central Campus” or “Central + Satellite”. CTED Central campus data includes only the data reported by the campuses in the central campuses list above. Central + Satellite data includes data reported by the campuses in both the central campuses and member districts lists above. Data is deduplicated, meaning that if a student is reported by multiple entities, they are counted only once wherever possible.
+</p>
+</div>
+
+---
+
+<div class = "pagebreak"></div>
+
+# GRADUATION RATE
+
+
+<p>The graduation rate is calculated using the student’s 4-year cohort as a base. The graduation rate is calculated as the number of participants or concentrators that graduated with their cohort divided by the total number of participants or concentrators in the cohort, respectively. Graduation rate is calculated using the `r params$grad_cohort_year` cohort in this Profile.
+</p>
+```{r gradratetbl, include=FALSE}
+gradratetbl_cted <- grad_rate_cted %>% filter(CTEDName == params$cted) %>%
+  mutate(ParticipantGradRate = paste0(round(ParticipantGradRate*100, 1), "%"),
+         ConcentratorGradRate = paste0(round(ConcentratorGradRate*100, 1), "%"))
+
+gradratetbl <- gradratetbl_cted %>% 
+  select(-CTEDName) %>%
+  select(CampusType, GradParticipants, AllParticipants, GradConcentrators, 
+         AllConcentrators) %>%
+  pivot_longer(cols = 2:5,
+               names_to = "Student", 
+               values_to = "Value",
+               values_transform = list(Value = as.character)) %>%
+  pivot_wider(names_from = CampusType, 
+              values_from = Value) %>%
+  mutate(Student = case_when(
+    Student == "GradParticipants" ~ "Graduating CTE Participants",
+    Student == "AllParticipants" ~ "All CTE Participants",
+    Student == "GradConcentrators" ~ "Graduating CTE Concentrators",
+    Student == "AllConcentrators" ~ "All CTE Concentrators",
+    TRUE ~ Student
+  ))
+
+```
+<div>
+<div class = "cardcontainer">
+
+<div class = "card">
+<div class = "container">
+<i class="fa-solid fa-graduation-cap"></i>
+<h4>`r paste0(params$cted, "'s Central + Satellite Campuses")`</h4>
+<h5><b>CTE Participants</b></h5>
+<p>`r gradratetbl_cted[1,7]`</p>
+<h5><b>CTE Concentrators</b></h5>
+<p>`r gradratetbl_cted[1,8]`</p>
+</div>
+</div>
+
+
+<div class = "card">
+<div class = "container">
+<i class="fa-solid fa-graduation-cap"></i>
+<h4>`r paste0(params$cted, "'s Central Campuses")`</h4>
+<h5><b>CTE Participants</b></h5>
+<p>`r gradratetbl_cted[2,7]`</p>
+<h5><b>CTE Concentrators</b></h5>
+<p>`r gradratetbl_cted[2,8]`</p>
+</div>
+</div>
+
+</div>
+</div>
+
+<div>
+<div class = "cardcontainer">
+
+<div class = "card">
+<div class = "container">
+<img src = "images/icon-arizona.png" alt="Arizona" style = "padding-top: 10px; height: 48px;">
+<h4>Arizona</h4>
+<h5><b>All CTE and non-CTE Students in Cohort</b></h5>
+<p>`r paste0(round(az_cohort_grad_rate*100, 1), "%")`</p>
+</div>
+</div>
+</div>
+
+## {.tabset .tabset-pills}
+### Data
+```{r gradratetbl_display, include=TRUE}
+
+gradratetbl %>%
+  kbl() %>%
+  kable_styling()
+  
+```
+
+---
+
+### Chart
+```{r gradratetbl_chart, include=TRUE, fig.width=10}
+
+grad_rate_chart <- rbind(
+  grad_rate_state %>%
+    select(Entity, CampusType, ParticipantGradRate, ConcentratorGradRate),
+  grad_rate_cted %>%
+    filter(CTEDName == params$cted) %>%
+    select(CTEDName, CampusType, ParticipantGradRate, ConcentratorGradRate) %>%
+    rename(Entity = CTEDName)
+) %>% pivot_longer(cols = 3:4, 
+                   names_to = "StudentType",
+                   values_to = "GraduationRate") %>%
+  mutate(
+    StudentType = case_when(
+      StudentType == "ParticipantGradRate" ~ "CTE Participants",
+      StudentType == "ConcentratorGradRate" ~ "CTE Concentrators")
+    ) %>%
+  add_case(Entity = "Arizona",
+           CampusType = NA,
+           StudentType = "All Students in Cohort",
+           GraduationRate = az_cohort_grad_rate) %>%
+  mutate(ChartName = paste(Entity, CampusType, StudentType ,sep = ", ")) %>%
+  mutate(ChartName = gsub("NA, ", "", ChartName))
+
+ggplot(grad_rate_chart, aes(x = reorder(ChartName, GraduationRate), y = GraduationRate)) +
+  geom_bar(stat = "identity", fill = "#1F78B4") +
+  geom_text(aes(label = paste0(round(GraduationRate*100, 1), "%")),
+            hjust = 1.2,
+            color = "white",
+            fontface = "bold") +
+  theme_minimal() +
+  labs(x = "", y = "Graduation Rate") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  coord_flip()
+
+```
+
+---
+
+<div class = "pagebreak"></div>
+
+# PROGRAM COMPLETION
+
+<p>The program completion rate is calculated as the number of students in the cohort that completed a CTE program divided by the number of students in the same cohort that earned credit in a CTE program. The term "completed a CTE program" means the student has passed the minimum required number of courses in the program having earned at least one credit in each required course. Program completion is calculated using `r params$grad_cohort_year + 1` cohort in this Profile.</p>
+<p>Empty cells in the table below indicate that the program did not have program completers at the campus type(s) specified in that column, but that campus type may have had students enrolled in the program.</p>
+
+```{r programcompletiontbl}
+
+programcompletiontbl_totals <- prog_completion_cted %>%
+  filter(CTEDName == params$cted)
+  
+centralandsatelliterate <- programcompletiontbl_totals %>% 
+  filter(ProgramDesc == "All Programs" & 
+           CampusType == "Central + Satellite") %>% 
+  select(ProgramCompletionRate)  %>%
+  mutate(ProgramCompletionRate = paste0(round(ProgramCompletionRate*100, 1), "%"))
+
+centralonlyrate <- programcompletiontbl_totals %>% 
+  filter(ProgramDesc == "All Programs" & 
+           CampusType == "CTED Central Campus") %>% 
+  select(ProgramCompletionRate) %>%
+  mutate(ProgramCompletionRate = paste0(round(ProgramCompletionRate*100, 1), "%"))
+
+programcompletiontbl <- full_join(
+  prog_completion_cted %>%
+    filter(CTEDName == params$cted &
+             CampusType == "Central + Satellite" &
+             ProgramDesc != "All Programs"),
+  prog_completion_cted %>%
+    filter(CTEDName == params$cted &
+             CampusType == "CTED Central Campus" &
+             ProgramDesc != "All Programs"),
+  by = c("CTEDName", "ProgramDesc")
+    
+) %>%
+  select(CTEDName, ProgramDesc, ProgramCompletionRate.x, ProgramCompletionRate.y) %>%
+  mutate(ProgramCompletionRate.x = ifelse(is.na(ProgramCompletionRate.x), as.numeric(NA), paste0(round(ProgramCompletionRate.x*100, 1), "%"))) %>%
+  mutate(ProgramCompletionRate.y = ifelse(is.na(ProgramCompletionRate.y), as.numeric(NA), paste0(round(ProgramCompletionRate.y*100, 1), "%"))) %>%
+  rename("Central + Satellite" = ProgramCompletionRate.x,
+         "CTED Central Campus" = ProgramCompletionRate.y,
+         "Program" = ProgramDesc) %>%
+  select(-CTEDName)
+
+programcompletiontbl[is.na(programcompletiontbl)] <- ""
+
+programcompletionstatetbl <- program_completion_state %>% filter(ProgramDesc == "All Programs")
+statecentralandsatellite <- programcompletionstatetbl %>%
+  filter(CampusType == "Central + Satellite") %>%
+  mutate(ProgramCompletionRate = paste0(round(ProgramCompletionRate*100, 1), "%"))
+statecentralonly <- programcompletionstatetbl %>%
+  filter(CampusType == "CTED Central Campus") %>%
+  mutate(ProgramCompletionRate = paste0(round(ProgramCompletionRate*100, 1), "%"))
+
+```
+
+<div>
+<div class = "cardcontainer">
+
+<div class = "card">
+<div class = "container">
+<i class="fa-solid fa-clipboard-check"></i>
+<h4>`r paste0(params$cted, "'s Central + Satellite Campuses")`</h4>
+<h5><b>Program Completion Rate</b></h5>
+<p>`r centralandsatelliterate[1,1]`</p>
+</div>
+</div>
+
+
+<div class = "card">
+<div class = "container">
+<i class="fa-solid fa-clipboard-check"></i>
+<h4>`r paste0(params$cted, "'s Central Campuses")`</h4>
+<h5><b>Program Completion Rate</b></h5>
+<p>`r centralonlyrate[1,1]`</p>
+
+</div>
+</div>
+
+</div>
+</div>
+
+<div>
+<div class = "cardcontainer">
+
+<div class = "card">
+<div class = "container">
+<img src = "images/icon-arizona.png" alt="Arizona" style = "padding-top: 10px; height: 48px;">
+<h4>Arizona's CTED Central and Satellite Campuses</h4>
+<h5><b>Program Completion Rate</b></h5>
+<p>`r statecentralandsatellite[1,6]`</p>
+</div>
+</div>
+
+
+<div class = "card">
+<div class = "container">
+<img src = "images/icon-arizona.png" alt="Arizona" style = "padding-top: 10px; height: 48px;">
+<h4>Arizona's CTED Central Campuses</h4>
+<h5><b>Program Completion Rate</b></h5>
+<p>`r statecentralonly[1,6]`</p>
+
+</div>
+</div>
+
+</div>
+</div>
+
+
+```{r programcompletiontbl_display, include=TRUE}
+programcompletiontbl %>%
+  kbl() %>%
+  kable_styling()
+```
+
+
+# POSTGRADUATION PLACEMENT
+
+
+<p>The postgraduation placement of CTE concentrators is calculated as the number of eligible CTE concentrators that have some form of placement divided by the number of eligible CTE concentrators that responded to a placement survey administered by their CTED or school district. CTE concentrators are considered eligible for a placement survey if they (1) are a CTE concentrator, and (2) left secondary education in the reporting year. There are five placement categories: enrollment in postsecondary education, enrollment in a postsecondary advanced training program, military service, participation in a national service program or the Peace Corps, or employment. The placement survey also collects “relatedness” of a student’s postgraduation placement to their high school CTE program.
+</p>
+```{r placementtbl, include = FALSE}
+placementtbl <- plac_rate_cted %>%
+  filter(CTEDName == params$cted) %>%
+  pivot_longer(3:ncol(plac_rate_cted), 
+               names_to = "Category", values_to = "CountRate",
+               values_transform = list(CountRate = as.character)) %>%
+  pivot_wider(names_from = CampusType, values_from = CountRate) %>%
+  mutate(Category = case_when(
+    Category == 'HasPlacementCount' ~ 'Number of Students with Placement',
+    Category == 'RespondedToSurveyCount' ~ 'Number of Survey Respondents',
+    Category == "ResponseRate" ~ "Survey Response Rate",
+    Category == "CountEligible" ~ "Number of Students Eligible",
+    Category == "Postsecondary" ~ "Postsecondary Education",
+    Category == "AdvancedTraining" ~ "Advanced Training",
+    Category == "Military" ~ "Military Service",
+    Category == "PublicService" ~ "Public Service Program",
+    Category == "Employment" ~ "Employment",
+    Category == "PlacementRate" ~ "Placement Rate",
+    Category == "PostsecondaryRate" ~ "Postsecondary Education Rate",
+    Category == "AdvancedTrainingRate" ~ "Advanced Training Rate",
+    Category == "MilitaryRate" ~ "Military Service Rate",
+    Category == "PublicServiceRate" ~ "Public Service Program Rate",
+    Category == "EmploymentRate" ~ "Employment Rate",
+    TRUE ~ Category
+  ))
+
+placementtbl_counts_cat <- placementtbl[4:8, 2:4]
+
+placementtbl_pct_cat <- placementtbl[11:15, 2:4] %>% select(-Category)
+placementtbl_pct_cat[1:2] <- lapply(placementtbl_pct_cat[1:2], function(x) paste0(round(as.numeric(x)*100, 1), "%"))
+
+placementtbl_combined_cat <- cbind(placementtbl_counts_cat, placementtbl_pct_cat)
+
+placementtbl_pct_overall <- placementtbl[9:15, 2:4]
+placementtbl_pct_overall[2:3] <- lapply(placementtbl_pct_overall[2:3], function(x) paste0(round(as.numeric(x)*100, 1), "%"))
+```
+<div>
+<h4>`r paste0(params$cted, "'s Central + Satellite Campuses")`</h4>
+
+<div class = "cardcontainer">
+
+<div class = "card">
+<i class="fa-regular fa-user"></i>
+<div class = "container">
+<h5><b>Students Eligible for Placement</b></h5>
+<p>`r placementtbl[3,3]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-list-check"></i>
+<div class = "container">
+<h5><b>Survey Respondents</b></h5>
+<p>`r placementtbl[2,3]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-check"></i>
+<div class = "container">
+<h5><b>Students with Placement</b></h5>
+<p>`r placementtbl[1,3]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-chart-line"></i>
+<div class = "container">
+<h5><b>Placement Rate</b></h5>
+<p>`r placementtbl_pct_overall[1,2]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-reply"></i>
+<div class = "container">
+<h5><b>Survey Response Rate</b></h5>
+<p>`r placementtbl_pct_overall[2,2]`</p>
+</div>
+</div>
+
+</div>
+</div>
+
+<div>
+<h4>`r paste0(params$cted, "'s Central Campuses")`</h4>
+
+<div class = "cardcontainer">
+
+<div class = "card">
+<i class="fa-regular fa-user"></i>
+<div class = "container">
+<h5><b>Students Eligible for Placement</b></h5>
+<p>`r placementtbl[3,4]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-list-check"></i>
+<div class = "container">
+<h5><b>Survey Respondents</b></h5>
+<p>`r placementtbl[2,4]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-check"></i>
+<div class = "container">
+<h5><b>Students with Placement</b></h5>
+<p>`r placementtbl[1,4]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-chart-line"></i>
+<div class = "container">
+<h5><b>Placement Rate</b></h5>
+<p>`r placementtbl_pct_overall[1,3]`</p>
+</div>
+</div>
+
+<div class = "card">
+<i class="fa-solid fa-reply"></i>
+<div class = "container">
+<h5><b>Survey Response Rate</b></h5>
+<p>`r placementtbl_pct_overall[2,3]`</p>
+</div>
+</div>
+
+</div>
+</div>
+
+<h4>Placement rates by Category</h4>
+```{r placementtbl_display, include=TRUE}
+placementtbl_combined_cat %>%
+  kbl() %>%
+  kable_styling() %>%
+  add_header_above(c(" " = 1, "Counts" = 2, "Percentages" = 2))
+```
+<p>Note: Placement rates by category may not add up to the total placement rate as students may be placed in multiple categories.</p>
+
+<h4>Comparison to Statewide CTE Placement Rates</h4>
+
+```{r placementcharts, include = TRUE, fig.width=10}
+plac_rate_state_chart_tbl <- plac_rate_state %>%
+  select(1, 10:11) %>%
+  add_column(Entity = "Arizona", .before = "CampusType")
+
+plac_rate_cted_chart_tbl <- plac_rate_cted %>%
+  filter(CTEDName == params$cted) %>%
+  select(1:2, 11:12) %>%
+  rename(Entity = CTEDName)
+
+plac_rate_chart_tbl <- rbind(plac_rate_state_chart_tbl,
+                             plac_rate_cted_chart_tbl)
+
+ggplot(data = plac_rate_chart_tbl, aes(x = CampusType, y = PlacementRate*100, fill = Entity)) +
+  geom_bar(stat = "identity", 
+           position = "dodge",
+           width = 0.3
+           ) +
+  geom_text(aes(label = paste0(round(PlacementRate*100, 1), "%")), 
+            position = position_dodge(0.3),
+            hjust = 1.2,
+            vjust = 0.5,
+            color = "white",
+            fontface = "bold") +
+  theme_minimal() +
+  theme(legend.position = 'bottom',
+        axis.ticks = element_blank()) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  labs(y = "Placement Rate", x = "") +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  coord_flip()
+```
+
+
+
